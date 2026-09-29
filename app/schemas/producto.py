@@ -15,6 +15,7 @@ class ProductoCreate(ProductoBase):
 
 class ProductoOut(ProductoBase):
   id: int
+  imagen_url: Optional[str] = None
 
   class Config:
     from_attributes = True

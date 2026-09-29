@@ -1,11 +1,9 @@
-from asyncio import selector_events
-from sqlalchemy.orm import relationship
-from app.database import Base
 from datetime import datetime, timezone
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Float, Boolean
 import secrets
-from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, Numeric, String
+from sqlalchemy.orm import relationship
+
+from app.database import Base
 
 
 class Producto(Base):
@@ -16,6 +14,7 @@ class Producto(Base):
     descripcion = Column(String, nullable=True)
     precio = Column(Float, nullable=False)
     stock = Column(Integer, nullable=False)
+    imagen_url = Column(String, nullable=True)
 
 
 # --- Modelos nuevos Paso 2 ---
@@ -27,20 +26,18 @@ class Usuario(Base):
     nombre = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    rol = Column(String, default="cliente")
+    rol = Column(String, default="cliente", nullable=False)
     activo = Column(Boolean, default=True)
     fecha_baja = Column(DateTime(timezone=True), nullable=True)
+    acepto_tratamiento = Column(Boolean, nullable=False)
+    fecha_consentimiento = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     # Relación uno-a-muchos con Pedido
     pedidos = relationship("Pedido", back_populates="usuario")
-    hashed_password = Column(String, nullable=False)
-    rol = Column(String, default="cliente", nullable=False)
-    acepto_tratamiento = Column(Boolean, nullable=False)
-    fecha_consentimiento = Column(
-      DateTime(timezone=True),
-      default=lambda: datetime.now(timezone.utc),
-      nullable=False,
-    )
 
 
 class Pedido(Base):

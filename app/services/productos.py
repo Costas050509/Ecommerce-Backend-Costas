@@ -32,3 +32,29 @@ def listar_productos(
     query = query.filter(Producto.precio <= precio_max)
 
   return query.offset(skip).limit(limit).all()
+
+
+def obtener_producto(db: Session, producto_id: int):
+  return db.query(Producto).filter(Producto.id == producto_id).first()
+
+
+def actualizar_producto(db: Session, producto_id: int, producto: ProductoCreate):
+  db_producto = db.query(Producto).filter(Producto.id == producto_id).first()
+  if not db_producto:
+    return None
+  db_producto.nombre = producto.nombre
+  db_producto.descripcion = producto.descripcion
+  db_producto.precio = producto.precio
+  db_producto.stock = producto.stock
+  db.commit()
+  db.refresh(db_producto)
+  return db_producto
+
+
+def eliminar_producto(db: Session, producto_id: int):
+  db_producto = db.query(Producto).filter(Producto.id == producto_id).first()
+  if not db_producto:
+    return False
+  db.delete(db_producto)
+  db.commit()
+  return True

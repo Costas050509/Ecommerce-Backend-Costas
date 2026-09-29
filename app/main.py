@@ -1,5 +1,7 @@
+import os
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware  # <-- 1. IMPORTANTE: Importar el middleware
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.database import Base, engine
 from app.routers import auth, pedidos, productos, usuarios
 
@@ -25,6 +27,10 @@ app.add_middleware(
     allow_methods=["*"],          # Permite GET, POST, PUT, DELETE, etc.
     allow_headers=["*"],          # Permite Authorization y otros headers
 )
+
+# Montar archivos estáticos
+os.makedirs("uploads/productos", exist_ok=True)
+app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
 # 4. Incluir routers
 app.include_router(auth.router)

@@ -1,9 +1,12 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.database import Base, engine
 from app.routers import auth, pedidos, productos, usuarios
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from app.database import get_db
 
 Base.metadata.create_all(bind=engine)
 
@@ -31,6 +34,7 @@ app.add_middleware(
 # Montar archivos estáticos
 os.makedirs("uploads/productos", exist_ok=True)
 app.mount("/static", StaticFiles(directory="uploads"), name="static")
+app.mount("/demo", StaticFiles(directory="app/static/demo"), name="demo")
 
 # 4. Incluir routers
 app.include_router(auth.router)
@@ -42,3 +46,11 @@ app.include_router(productos.router)
 @app.get("/")
 def root():
     return {"mensaje": "API del E-Commerce funcionando correctamente"}
+
+@app.get("/salud")
+def salud(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+        return {"estado": "ok", "base": "ok"}
+    except Exception:
+        return {"estado": "ok", "base": "error"}

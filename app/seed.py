@@ -1,28 +1,20 @@
 """
 Script de siembra (Seeder) para la base de datos del E-Commerce.
 
-¿Para qué sirve este archivo?
------------------------------
-Cuando desplegás tu backend en plataformas como Render, Railway o Supabase,
-la base de datos PostgreSQL en la nube inicia completamente VACÍA.
-Este script se encarga de:
-1. Crear las tablas necesarias si aún no existen.
-2. Crear un usuario Administrador por defecto (para poder gestionar el panel y productos).
-3. Crear un usuario Cliente de prueba (para poder probar compras y autenticación).
-4. Poblar el catálogo con productos iniciales de muestra con precios, stock y fotos.
+Crea:
+1. Tablas si no existen.
+2. Usuario Admin por defecto.
+3. Usuario Cliente de prueba.
+4. Catalogo de jugos con imagenes locales en /demo/.
+5. Un pedido de muestra del cliente.
 
 Uso:
-----
-Desde la terminal en la raíz del proyecto:
     python -m app.seed
-o directamente:
-    python app/seed.py
 """
 
 import sys
 import os
 
-# Asegurar que el directorio raíz esté en el path para poder importar 'app'
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from decimal import Decimal
@@ -37,11 +29,10 @@ from app.core.security import hash_password
 def seed_usuarios(db: Session) -> dict:
     """Crea los usuarios iniciales (Admin y Cliente) si no existen."""
     print("[*] Verificando usuarios iniciales...")
-    
-    # 1. Usuario Administrador
+
     admin_email = os.getenv("SEED_ADMIN_EMAIL", "admin@ecommerce.com")
     admin_password = os.getenv("SEED_ADMIN_PASSWORD", "admin123")
-    
+
     admin = db.query(models.Usuario).filter(models.Usuario.email == admin_email).first()
     if not admin:
         admin = models.Usuario(
@@ -56,14 +47,13 @@ def seed_usuarios(db: Session) -> dict:
         db.add(admin)
         db.commit()
         db.refresh(admin)
-        print(f"  [+] Usuario Admin creado: {admin_email} (password: {admin_password})")
+        print(f"  [+] Usuario Admin creado: {admin_email}")
     else:
         print(f"  [i] Usuario Admin ya existe: {admin_email}")
 
-    # 2. Usuario Cliente Demo
     cliente_email = os.getenv("SEED_CLIENTE_EMAIL", "cliente@ecommerce.com")
     cliente_password = os.getenv("SEED_CLIENTE_PASSWORD", "cliente123")
-    
+
     cliente = db.query(models.Usuario).filter(models.Usuario.email == cliente_email).first()
     if not cliente:
         cliente = models.Usuario(
@@ -78,7 +68,7 @@ def seed_usuarios(db: Session) -> dict:
         db.add(cliente)
         db.commit()
         db.refresh(cliente)
-        print(f"  [+] Usuario Cliente creado: {cliente_email} (password: {cliente_password})")
+        print(f"  [+] Usuario Cliente creado: {cliente_email}")
     else:
         print(f"  [i] Usuario Cliente ya existe: {cliente_email}")
 
@@ -86,65 +76,30 @@ def seed_usuarios(db: Session) -> dict:
 
 
 def seed_productos(db: Session) -> list:
-    """Crea un catálogo de productos de prueba si no existen."""
+    """Crea el catalogo de jugos usando las imagenes locales de app/static/demo."""
     print("[*] Verificando catalogo de productos...")
-    
+
     productos_iniciales = [
         {
-            "nombre": "Notebook Pro Max 16",
-            "descripcion": "Laptop de alto rendimiento con procesador octa-core, 32GB RAM y 1TB SSD NVMe.",
-            "precio": 1499.99,
-            "stock": 15,
-            "imagen_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&auto=format&fit=crop&q=60",
+            "nombre": "Jugo Detox Verde",
+            "descripcion": "Jugo detox con verduras, espinaca y hierbas frescas. Ideal para depurar.",
+            "precio": 1700.00,
+            "stock": 10,
+            "imagen_url": "/demo/detox.jpg",
         },
         {
-            "nombre": "Smartphone Ultra 5G",
-            "descripcion": "Pantalla AMOLED de 120Hz, camara de 108MP y bateria para 2 dias de uso continuo.",
-            "precio": 899.50,
-            "stock": 30,
-            "imagen_url": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&auto=format&fit=crop&q=60",
-        },
-        {
-            "nombre": "Auriculares Wireless Noise Cancelling",
-            "descripcion": "Cancelacion activa de ruido premium, audio espacial y hasta 40 horas de autonomia.",
-            "precio": 199.99,
-            "stock": 50,
-            "imagen_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=60",
-        },
-        {
-            "nombre": "Teclado Mecanico RGB Custom",
-            "descripcion": "Switches mecanicos lubricados, retroiluminacion RGB configurable y conexion inalambrica 2.4GHz.",
-            "precio": 129.00,
-            "stock": 25,
-            "imagen_url": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&auto=format&fit=crop&q=60",
-        },
-        {
-            "nombre": "Mouse Gamer Ergonomico 16000 DPI",
-            "descripcion": "Sensor optico de alta precision, peso ultraligero y switches opticos de rapida respuesta.",
-            "precio": 59.99,
-            "stock": 40,
-            "imagen_url": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=800&auto=format&fit=crop&q=60",
-        },
-        {
-            "nombre": "Monitor Curvo 27\" 165Hz QHD",
-            "descripcion": "Resolucion 2560x1440, panel IPS con tiempo de respuesta de 1ms y compatibilidad FreeSync/G-Sync.",
-            "precio": 349.00,
+            "nombre": "Jugo de Naranja Natural",
+            "descripcion": "Naranja 100% natural, prensada en frio. Vitamina C pura para arrancar el dia.",
+            "precio": 1500.00,
             "stock": 12,
-            "imagen_url": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&auto=format&fit=crop&q=60",
+            "imagen_url": "/demo/naranja.jpg",
         },
         {
-            "nombre": "Smartwatch Deportivo Pro",
-            "descripcion": "Sensor de ritmo cardiaco, oximetro SpO2, GPS integrado y sumergible hasta 50 metros.",
-            "precio": 179.99,
-            "stock": 20,
-            "imagen_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=60",
-        },
-        {
-            "nombre": "Webcam 4K Ultra HD con Microfono",
-            "descripcion": "Enfoque automatico, correccion de poca luz y microfonos estereo con reduccion de ruido.",
-            "precio": 89.90,
-            "stock": 35,
-            "imagen_url": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&auto=format&fit=crop&q=60",
+            "nombre": "Jugo Tropical Mix",
+            "descripcion": "Mezcla tropical de mango, anana y maracuya. Dulzura natural sin azucar agregada.",
+            "precio": 1600.00,
+            "stock": 8,
+            "imagen_url": "/demo/tropical.jpg",
         },
     ]
 
@@ -162,7 +117,7 @@ def seed_productos(db: Session) -> list:
             db.add(prod)
             db.commit()
             db.refresh(prod)
-            print(f"  [+] Producto creado: {prod.nombre} - ${prod.precio}")
+            print(f"  [+] Producto creado: {prod.nombre} - ${prod.precio} [{prod.imagen_url}]")
         else:
             print(f"  [i] Producto ya existe: {prod.nombre}")
         productos_creados.append(prod)
@@ -171,15 +126,15 @@ def seed_productos(db: Session) -> list:
 
 
 def seed_pedidos(db: Session, cliente: models.Usuario, productos: list):
-    """Crea un pedido inicial de muestra asociado al cliente demo si no tiene pedidos."""
+    """Crea un pedido de muestra asociado al cliente demo si no tiene pedidos."""
     print("[*] Verificando pedidos de muestra...")
     if not cliente or not productos:
         return
 
     pedido_existente = db.query(models.Pedido).filter(models.Pedido.usuario_id == cliente.id).first()
-    if not pedido_existente and len(productos) >= 2:
-        prod1 = productos[0]
-        prod2 = productos[2]
+    if not pedido_existente and len(productos) >= 3:
+        prod1 = productos[0]  # Detox
+        prod2 = productos[1]  # Naranja
 
         subtotal1 = Decimal(str(prod1.precio)) * 1
         subtotal2 = Decimal(str(prod2.precio)) * 2
@@ -215,17 +170,15 @@ def seed_pedidos(db: Session, cliente: models.Usuario, productos: list):
 
 
 def seed_all():
-    """Ejecuta todas las tareas de siembra de la base de datos."""
+    """Ejecuta todas las tareas de siembra."""
     print("=" * 60)
     print(">>> INICIANDO PROCESO DE SEEDING DE BASE DE DATOS <<<")
     print("=" * 60)
 
-    # 1. Asegurar que las tablas existan en la base de datos
     print("[*] Creando tablas en la base de datos si no existen...")
     Base.metadata.create_all(bind=engine)
     print("  [OK] Tablas verificadas/creadas.")
 
-    # 2. Iniciar sesion e insertar los registros iniciales
     db = SessionLocal()
     try:
         usuarios = seed_usuarios(db)

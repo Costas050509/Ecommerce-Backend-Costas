@@ -7,6 +7,7 @@ from app.routers import auth, pedidos, productos, usuarios
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
+from app.core.config import settings
 
 Base.metadata.create_all(bind=engine)
 
@@ -16,19 +17,20 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# 2. Configurar orígenes permitidos (puerto de Vite/React)
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+# Leer orígenes desde la variable de entorno CORS_ORIGINS
+# Formato esperado: "https://url1.com,https://url2.com" (separados por coma)
+# Si no está definida, usa localhost por defecto
+cors_env = settings.CORS_ORIGINS or "http://localhost:5173,http://127.0.0.1:5173"
+origins = [o.strip() for o in cors_env.split(",") if o.strip()]
 
-# 3. Agregar el middleware a FastAPI
+print(f"[CORS] Orígenes permitidos: {origins}")  # Para debug en los logs
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,       # Permite peticiones de tu React
-    allow_credentials=True,      # Permite envío de tokens/cookies
-    allow_methods=["*"],          # Permite GET, POST, PUT, DELETE, etc.
-    allow_headers=["*"],          # Permite Authorization y otros headers
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Montar archivos estáticos
@@ -36,7 +38,7 @@ os.makedirs("uploads/productos", exist_ok=True)
 app.mount("/static", StaticFiles(directory="uploads"), name="static")
 app.mount("/demo", StaticFiles(directory="app/static/demo"), name="demo")
 
-# 4. Incluir routers
+# Incluir routers
 app.include_router(auth.router)
 app.include_router(usuarios.router)
 app.include_router(pedidos.router)

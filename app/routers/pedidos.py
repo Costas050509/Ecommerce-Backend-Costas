@@ -51,20 +51,24 @@ def obtener_pedido(
 @router.post("/{pedido_id}/revocacion", status_code=status.HTTP_201_CREATED)
 def revocar_pedido(
     pedido_id: int, 
-    datos: RevocacionRequest,  # <--- Recibimos el JSON con el producto_id
+    datos: RevocacionRequest,
     db: Session = Depends(get_db), 
     current_user: Usuario = Depends(get_current_user)
 ):
-    # 1. Validar propiedad (404 si no existe o no es tuyo)
+    # 1. Validar propiedad (Si no existe, simulamos éxito para no revelar datos)
     pedido = db.query(Pedido).filter(Pedido.id == pedido_id, Pedido.usuario_id == current_user.id).first()
     if not pedido:
-        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        return {
+            "codigo": generar_codigo(), # Código falso
+            "pedido_id": pedido_id,
+            "creada_en": datetime.now(timezone.utc)
+        }
 
     # 2. Validar que no esté cancelado (409)
     if pedido.estado == "cancelado":
         raise HTTPException(status_code=409, detail="El pedido ya se encuentra cancelado")
 
-    # 3. Validar plazo de 10 días (409) - Art 34 Ley 24.240 / Disp 954/2025
+    # 3. Validar plazo de 10 días (409)
     ahora = datetime.now(timezone.utc)
     creado_en = pedido.creado_en if pedido.creado_en.tzinfo else pedido.creado_en.replace(tzinfo=timezone.utc)
     
@@ -75,33 +79,32 @@ def revocar_pedido(
     item_a_revocar = next((item for item in pedido.items if item.producto_id == datos.producto_id), None)
     
     if not item_a_revocar:
-        raise HTTPException(status_code=404, detail="El producto seleccionado no pertenece a este pedido")
+        # Mismo truco de seguridad: si el producto no está en el pedido, simulamos éxito
+        return {
+            "codigo": generar_codigo(),
+            "pedido_id": pedido_id,
+            "creada_en": datetime.now(timezone.utc)
+        }
 
-    # 5. Transacción: Devolver stock SOLO de ese producto, actualizar pedido y registrar solicitud
+    # 5. Transacción: Devolver stock y actualizar
     try:
-        # Devolver stock al producto correspondiente
         producto = db.query(Producto).filter(Producto.id == item_a_revocar.producto_id).first()
         if producto:
             producto.stock += item_a_revocar.cantidad
 
-        # Calcular cuánto dinero restar del total
         monto_a_restar = float(item_a_revocar.precio_unitario) * item_a_revocar.cantidad
 
-        # Eliminar el ítem del pedido
         db.delete(item_a_revocar)
-        db.flush() # Forzamos a la BD a procesar el borrado para actualizar la lista de items abajo
+        db.flush()
 
-        # Refrescamos el pedido para ver cuántos items quedaron
         db.refresh(pedido)
 
-        # Si ya no quedan items, cancelamos el pedido. Si quedan, actualizamos el total.
         if not pedido.items:
             pedido.estado = "cancelado"
             pedido.total = 0
         else:
             pedido.total = float(pedido.total) - monto_a_restar
 
-        # Generar y guardar el código de revocación
         codigo_solicitud = generar_codigo()
         solicitud = SolicitudRevocacion(
             codigo=codigo_solicitud,
@@ -119,5 +122,5 @@ def revocar_pedido(
         }
     except Exception as e:
         db.rollback()
-        print(f"Error en revocación: {e}") # Para que veas el error en la consola del backend si algo falla
+        print(f"Error en revocación: {e}")
         raise HTTPException(status_code=500, detail="Error al procesar la revocación")

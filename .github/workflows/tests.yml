@@ -1,0 +1,36 @@
+name: Pruebas Automatizadas
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # ⚠️ OJO ACÁ: Si tu backend está en una subcarpeta dentro del repo, 
+    # descomentá las siguientes dos líneas y poné el nombre de la carpeta:
+    # defaults:
+    #   run:
+    #     working-directory: ./ecommerce-backend
+
+    steps:
+    - name: Descargar el código
+      uses: actions/checkout@v4
+
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        # 3. Poné la misma versión que usás en Render (según tu log, es 3.13)
+        python-version: '3.13' 
+
+    - name: Instalar dependencias
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest httpx
+
+    - name: Correr los tests con Pytest
+      run: pytest -v

@@ -8,6 +8,15 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
 from app.core.config import settings
+from fastapi.middleware.gzip import GZipMiddleware  # <-- NUEVO
+
+class CachedStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            # 2592000 segundos = 30 días de caché
+            response.headers["Cache-Control"] = "public, max-age=2592000"
+        return response
 
 Base.metadata.create_all(bind=engine)
 
@@ -32,6 +41,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# --- NUEVO: Middleware de compresión GZIP ---
+# Comprime las respuestas mayores a 1000 bytes para que viajen más rápido
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Montar archivos estáticos
 os.makedirs("uploads/productos", exist_ok=True)
